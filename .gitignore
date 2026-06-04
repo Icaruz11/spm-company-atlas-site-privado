@@ -1,0 +1,9 @@
+node_modules/
+.vercel/
+.env
+.env.*
+!.env.example
+*.log
+Thumbs.db
+.DS_Store
+assets/media/results/depoimento-mario-froner.mp4
