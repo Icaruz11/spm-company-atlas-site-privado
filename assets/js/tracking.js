@@ -3,10 +3,6 @@
   const cookieKey = config.cookieKey || "spm_cookie_consent";
   const consentAccepted = "accepted";
   const consentRejected = "rejected";
-  let pixelLoaded = false;
-
-  const isConfigured = () =>
-    Boolean(config.pixelId && !String(config.pixelId).includes("SEU_PIXEL_ID"));
 
   const getConsent = () => {
     try {
@@ -20,69 +16,12 @@
     try {
       localStorage.setItem(cookieKey, value);
     } catch {
-      // ignore storage errors
+      // ignore
     }
     syncBanner();
     if (value === consentRejected) {
       disablePixel();
     }
-  };
-
-  const installFbqStub = () => {
-    if (window.fbq) return;
-    const n = function () {
-      n.callMethod
-        ? n.callMethod.apply(n, arguments)
-        : n.queue.push(arguments);
-    };
-    n.push = n;
-    n.loaded = true;
-    n.version = "2.0";
-    n.queue = [];
-    window.fbq = n;
-    if (!window._fbq) window._fbq = n;
-  };
-
-  const loadPixel = () => {
-    if (!isConfigured() || pixelLoaded) return;
-    if (getConsent() === consentRejected) return;
-
-    pixelLoaded = true;
-    installFbqStub();
-
-    const fire = () => {
-      window.fbq("init", config.pixelId);
-      window.fbq("track", "PageView");
-
-      const page = document.body?.dataset.page;
-      const viewContent = document.body?.dataset.trackViewContent === "true";
-      const completeRegistration =
-        document.body?.dataset.trackCompleteRegistration === "true";
-
-      if (page === "home" && viewContent) {
-        window.fbq("track", "ViewContent", {
-          content_name: config.siteName || config.brandName || "SPM Company",
-          content_category: "Landing Page",
-        });
-      }
-
-      if (completeRegistration) {
-        window.fbq("track", "CompleteRegistration", {
-          content_name: "Obrigado",
-        });
-      }
-    };
-
-    if (window.fbq && window.fbq.callMethod) {
-      fire();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.async = true;
-    script.src = "https://connect.facebook.net/en_US/fbevents.js";
-    script.onload = fire;
-    document.head.appendChild(script);
   };
 
   const clearMetaCookies = () => {
@@ -107,9 +46,13 @@
     clearMetaCookies();
   };
 
-  const track = (eventName, params = {}) => {
-    if (typeof window.fbq === "function" && pixelLoaded) {
-      window.fbq("track", eventName, params);
+  const track = (eventName, params = {}, options) => {
+    if (typeof window.fbq === "function") {
+      if (options) {
+        window.fbq("track", eventName, params, options);
+      } else {
+        window.fbq("track", eventName, params);
+      }
     }
   };
 
@@ -131,24 +74,30 @@
 
   const syncBanner = () => {
     const consent = getConsent();
-    const banner = document.querySelector("[data-cookie-banner]");
-    if (!banner) return;
-
     if (consent === "pending") {
       showBanner();
-      return;
+    } else {
+      hideBanner();
     }
-
-    hideBanner();
   };
 
   const initPageTracking = () => {
-    if (isConfigured() && getConsent() !== consentRejected) {
-      loadPixel();
+    if (getConsent() === consentRejected) {
+      disablePixel();
+      return;
     }
 
     if (getConsent() === "pending") {
       showBanner();
+    }
+
+    const page = document.body?.dataset.page;
+    const viewContent = document.body?.dataset.trackViewContent === "true";
+    if (page === "home" && viewContent && typeof window.fbq === "function") {
+      window.fbq("track", "ViewContent", {
+        content_name: config.siteName || config.brandName || "SPM Company",
+        content_category: "Landing Page",
+      });
     }
   };
 
@@ -164,11 +113,9 @@
   };
 
   window.SPMTracker = {
-    loadPixel,
     track,
     setConsent,
     getConsent,
-    isConfigured,
   };
 
   document.addEventListener("DOMContentLoaded", () => {
