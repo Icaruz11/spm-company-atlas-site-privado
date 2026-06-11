@@ -90,15 +90,6 @@
     if (getConsent() === "pending") {
       showBanner();
     }
-
-    const page = document.body?.dataset.page;
-    const viewContent = document.body?.dataset.trackViewContent === "true";
-    if (page === "home" && viewContent && typeof window.fbq === "function") {
-      window.fbq("track", "ViewContent", {
-        content_name: config.siteName || config.brandName || "SPM Company",
-        content_category: "Landing Page",
-      });
-    }
   };
 
   const initBanner = () => {
