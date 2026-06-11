@@ -4,6 +4,9 @@ const SHEET_NAME = 'Leads';
 const META_PIXEL_ID = '1899907434017840';
 const META_API_VERSION = 'v20.0';
 
+const META_ACCESS_TOKEN = 'COLE_SEU_ACCESS_TOKEN_AQUI';
+const META_TEST_EVENT_CODE = '';
+
 const HEADERS = [
   'ID',
   'Data de envio',
@@ -134,18 +137,6 @@ function doPost(e) {
   }
 }
 
-function setMetaCredentials(accessToken, testEventCode) {
-  const props = PropertiesService.getScriptProperties();
-  if (accessToken) props.setProperty('META_ACCESS_TOKEN', accessToken);
-  if (testEventCode) props.setProperty('META_TEST_EVENT_CODE', testEventCode);
-  return 'OK';
-}
-
-function clearMetaTestEventCode() {
-  PropertiesService.getScriptProperties().deleteProperty('META_TEST_EVENT_CODE');
-  return 'OK';
-}
-
 function sha256_(value) {
   if (!value) return '';
   const normalized = String(value).trim().toLowerCase();
@@ -173,13 +164,12 @@ function splitCityState_(raw) {
 }
 
 function sendMetaCAPI_(data, eventId, when) {
-  const props = PropertiesService.getScriptProperties();
-  const accessToken = props.getProperty('META_ACCESS_TOKEN');
-  if (!accessToken) {
+  const accessToken = META_ACCESS_TOKEN;
+  if (!accessToken || accessToken.indexOf('COLE_SEU') === 0) {
     console.warn('META_ACCESS_TOKEN not set; skipping CAPI');
     return;
   }
-  const testEventCode = props.getProperty('META_TEST_EVENT_CODE') || '';
+  const testEventCode = META_TEST_EVENT_CODE || '';
 
   const nameParts = String(data.nome || '').trim().split(/\s+/);
   const firstName = nameParts.shift() || '';
