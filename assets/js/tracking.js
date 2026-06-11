@@ -23,8 +23,8 @@
       // ignore storage errors
     }
     syncBanner();
-    if (value === consentAccepted) {
-      loadPixel();
+    if (value === consentRejected) {
+      disablePixel();
     }
   };
 
@@ -44,9 +44,8 @@
   };
 
   const loadPixel = () => {
-    if (!isConfigured() || pixelLoaded || getConsent() !== consentAccepted) {
-      return;
-    }
+    if (!isConfigured() || pixelLoaded) return;
+    if (getConsent() === consentRejected) return;
 
     pixelLoaded = true;
     installFbqStub();
@@ -54,6 +53,24 @@
     const fire = () => {
       window.fbq("init", config.pixelId);
       window.fbq("track", "PageView");
+
+      const page = document.body?.dataset.page;
+      const viewContent = document.body?.dataset.trackViewContent === "true";
+      const completeRegistration =
+        document.body?.dataset.trackCompleteRegistration === "true";
+
+      if (page === "home" && viewContent) {
+        window.fbq("track", "ViewContent", {
+          content_name: config.siteName || config.brandName || "SPM Company",
+          content_category: "Landing Page",
+        });
+      }
+
+      if (completeRegistration) {
+        window.fbq("track", "CompleteRegistration", {
+          content_name: "Obrigado",
+        });
+      }
     };
 
     if (window.fbq && window.fbq.callMethod) {
@@ -66,6 +83,28 @@
     script.src = "https://connect.facebook.net/en_US/fbevents.js";
     script.onload = fire;
     document.head.appendChild(script);
+  };
+
+  const clearMetaCookies = () => {
+    const cookies = ["_fbp", "_fbc"];
+    const host = location.hostname;
+    const parts = host.split(".");
+    const domains = [host];
+    if (parts.length > 1) domains.push("." + parts.slice(-2).join("."));
+
+    cookies.forEach((name) => {
+      domains.forEach((d) => {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${d}`;
+      });
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+    });
+  };
+
+  const disablePixel = () => {
+    if (typeof window.fbq === "function") {
+      window.fbq("consent", "revoke");
+    }
+    clearMetaCookies();
   };
 
   const track = (eventName, params = {}) => {
@@ -104,30 +143,12 @@
   };
 
   const initPageTracking = () => {
-    if (isConfigured()) installFbqStub();
-
-    if (getConsent() === consentAccepted) {
+    if (isConfigured() && getConsent() !== consentRejected) {
       loadPixel();
-    } else if (getConsent() !== consentRejected) {
+    }
+
+    if (getConsent() === "pending") {
       showBanner();
-    }
-
-    const page = document.body?.dataset.page;
-    const viewContent = document.body?.dataset.trackViewContent === "true";
-    const completeRegistration =
-      document.body?.dataset.trackCompleteRegistration === "true";
-
-    if (pixelLoaded && page === "home" && viewContent) {
-      track("ViewContent", {
-        content_name: config.siteName || config.brandName || "SPM Company",
-        content_category: "Landing Page",
-      });
-    }
-
-    if (pixelLoaded && completeRegistration) {
-      track("CompleteRegistration", {
-        content_name: "Obrigado",
-      });
     }
   };
 
