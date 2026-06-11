@@ -165,8 +165,19 @@
     const submitButton = form.querySelector('[type="submit"]');
     if (submitButton instanceof HTMLButtonElement) {
       submitButton.disabled = false;
-      submitButton.textContent = "Solicitar diagnostico ATLAS ->";
+      submitButton.textContent = "Solicitar diagnostico do Protocolo ATLAS ->";
     }
+  };
+
+  const UNQUALIFIED_REVENUE = new Set([
+    "Até R$ 30 mil",
+    "R$ 30 mil a R$ 40 mil",
+  ]);
+
+  const resolveRedirect = (form) => {
+    const faturamentoField = form.querySelector('[name="faturamento"]');
+    const faturamento = faturamentoField ? String(faturamentoField.value || "").trim() : "";
+    return UNQUALIFIED_REVENUE.has(faturamento) ? "/obrigado1/" : "/obrigado/";
   };
 
   const handleSuccess = (form, mode) => {
@@ -198,8 +209,10 @@
       });
     }
 
+    const destination = resolveRedirect(form);
+
     window.setTimeout(() => {
-      window.location.href = "/obrigado/";
+      window.location.href = destination;
     }, 650);
   };
 
