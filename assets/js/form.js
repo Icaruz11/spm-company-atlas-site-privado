@@ -233,24 +233,6 @@
     const eventId = eventIdField instanceof HTMLInputElement ? eventIdField.value : "";
 
     if (typeof window.fbq === "function" && config.pixelId) {
-      const [firstName, ...rest] = String(payload.nome || "").trim().split(/\s+/);
-      const lastName = rest.join(" ");
-      const [city, state] = String(payload.cidade_estado || "")
-        .split(/[-\/,]/)
-        .map((part) => part.trim());
-
-      const userData = {
-        em: String(payload.email || "").trim().toLowerCase(),
-        ph: String(payload.whatsapp || "").replace(/\D/g, ""),
-        fn: firstName ? firstName.toLowerCase() : "",
-        ln: lastName ? lastName.toLowerCase() : "",
-        ct: city ? city.toLowerCase() : "",
-        st: state ? state.toLowerCase() : "",
-        country: "br",
-        external_id: eventId || "",
-      };
-
-      window.fbq("init", config.pixelId, userData);
       window.fbq(
         "track",
         "Lead",
