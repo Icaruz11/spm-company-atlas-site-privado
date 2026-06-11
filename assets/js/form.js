@@ -50,6 +50,30 @@
     });
   };
 
+  const readCookie = (name) => {
+    const match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+    return match ? decodeURIComponent(match[1]) : "";
+  };
+
+  const buildFbc = (fbclid) => {
+    if (!fbclid) return "";
+    const existing = readCookie("_fbc");
+    if (existing) return existing;
+    return `fb.1.${Date.now()}.${fbclid}`;
+  };
+
+  const generateEventId = () => {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
+    }
+    return "evt-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10);
+  };
+
+  const setField = (form, name, value) => {
+    const input = form.querySelector(`[name="${name}"]`);
+    if (input) input.value = value || "";
+  };
+
   const fillTrackingFields = (form) => {
     const params = getParams();
     const fields = [
@@ -69,13 +93,16 @@
       }
     });
 
-    const pageUrl = form.querySelector('[name="page_url"]');
-    const referrer = form.querySelector('[name="referrer"]');
-    const userAgent = form.querySelector('[name="user_agent"]');
+    setField(form, "page_url", window.location.href);
+    setField(form, "referrer", document.referrer || "");
+    setField(form, "user_agent", navigator.userAgent || "");
+    setField(form, "fbp", readCookie("_fbp"));
+    setField(form, "fbc", buildFbc(storageGet("fbclid") || params.fbclid));
 
-    if (pageUrl) pageUrl.value = window.location.href;
-    if (referrer) referrer.value = document.referrer || "";
-    if (userAgent) userAgent.value = navigator.userAgent || "";
+    const existingEventId = form.querySelector('[name="event_id"]');
+    if (existingEventId instanceof HTMLInputElement && !existingEventId.value) {
+      existingEventId.value = generateEventId();
+    }
   };
 
   const collectDraft = (form) => {
@@ -202,11 +229,39 @@
       }),
     );
 
-    if (window.SPMTracker) {
-      window.SPMTracker.track("Lead", {
-        content_name: "Formulario Protocolo ATLAS",
-        content_category: "Diagnostico Comercial",
-      });
+    const eventIdField = form.querySelector('[name="event_id"]');
+    const eventId = eventIdField instanceof HTMLInputElement ? eventIdField.value : "";
+
+    if (typeof window.fbq === "function" && config.pixelId) {
+      const [firstName, ...rest] = String(payload.nome || "").trim().split(/\s+/);
+      const lastName = rest.join(" ");
+      const [city, state] = String(payload.cidade_estado || "")
+        .split(/[-\/,]/)
+        .map((part) => part.trim());
+
+      const userData = {
+        em: String(payload.email || "").trim().toLowerCase(),
+        ph: String(payload.whatsapp || "").replace(/\D/g, ""),
+        fn: firstName ? firstName.toLowerCase() : "",
+        ln: lastName ? lastName.toLowerCase() : "",
+        ct: city ? city.toLowerCase() : "",
+        st: state ? state.toLowerCase() : "",
+        country: "br",
+        external_id: eventId || "",
+      };
+
+      window.fbq("init", config.pixelId, userData);
+      window.fbq(
+        "track",
+        "Lead",
+        {
+          content_name: "Formulario Protocolo ATLAS",
+          content_category: "Diagnostico Comercial",
+          currency: "BRL",
+          value: 100,
+        },
+        eventId ? { eventID: eventId } : undefined,
+      );
     }
 
     const destination = resolveRedirect(form);
