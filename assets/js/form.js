@@ -250,7 +250,7 @@
 
     window.setTimeout(() => {
       window.location.href = destination;
-    }, 650);
+    }, 1500);
   };
 
   const handleError = (form, message) => {
