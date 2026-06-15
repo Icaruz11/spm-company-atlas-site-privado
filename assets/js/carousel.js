@@ -21,8 +21,12 @@
     const slides = Array.from(track.querySelectorAll(".card-carousel__slide"));
     if (slides.length === 0) return;
 
-    const interval = Number(root.dataset.carouselInterval) || 10000;
-    root.style.setProperty("--carousel-interval", `${interval}ms`);
+    const intervalAttr = root.dataset.carouselInterval;
+    const interval = intervalAttr ? Number(intervalAttr) : 0;
+    const autoplayEnabled = interval > 0;
+    if (autoplayEnabled) {
+      root.style.setProperty("--carousel-interval", `${interval}ms`);
+    }
 
     let activeIndex = 0;
     let autoTimer = null;
@@ -52,6 +56,7 @@
     };
 
     const startAuto = () => {
+      if (!autoplayEnabled) return;
       if (prefersReducedMotion()) return;
       stopAuto();
       autoTimer = window.setInterval(() => {
