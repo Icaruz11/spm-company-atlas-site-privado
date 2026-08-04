@@ -4,6 +4,11 @@
   const consentAccepted = "accepted";
   const consentRejected = "rejected";
 
+  // O Pixel dispara incondicionalmente (assets/js/pixel.js). Este módulo NÃO
+  // faz gate de consentimento: o rastreio fica ativo em qualquer página e a
+  // qualquer momento, por decisão de negócio. O banner de cookies permanece no
+  // markup apenas como aviso e nunca desativa o Pixel.
+
   const getConsent = () => {
     try {
       return localStorage.getItem(cookieKey) || "pending";
@@ -18,32 +23,7 @@
     } catch {
       // ignore
     }
-    syncBanner();
-    if (value === consentRejected) {
-      disablePixel();
-    }
-  };
-
-  const clearMetaCookies = () => {
-    const cookies = ["_fbp", "_fbc"];
-    const host = location.hostname;
-    const parts = host.split(".");
-    const domains = [host];
-    if (parts.length > 1) domains.push("." + parts.slice(-2).join("."));
-
-    cookies.forEach((name) => {
-      domains.forEach((d) => {
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${d}`;
-      });
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-    });
-  };
-
-  const disablePixel = () => {
-    if (typeof window.fbq === "function") {
-      window.fbq("consent", "revoke");
-    }
-    clearMetaCookies();
+    hideBanner();
   };
 
   const track = (eventName, params = {}, options) => {
@@ -56,39 +36,11 @@
     }
   };
 
-  const showBanner = () => {
-    const banner = document.querySelector("[data-cookie-banner]");
-    if (banner) {
-      banner.hidden = false;
-      banner.classList.add("is-visible");
-    }
-  };
-
   const hideBanner = () => {
     const banner = document.querySelector("[data-cookie-banner]");
     if (banner) {
       banner.hidden = true;
       banner.classList.remove("is-visible");
-    }
-  };
-
-  const syncBanner = () => {
-    const consent = getConsent();
-    if (consent === "pending") {
-      showBanner();
-    } else {
-      hideBanner();
-    }
-  };
-
-  const initPageTracking = () => {
-    if (getConsent() === consentRejected) {
-      disablePixel();
-      return;
-    }
-
-    if (getConsent() === "pending") {
-      showBanner();
     }
   };
 
@@ -99,6 +51,8 @@
     const accept = banner.querySelector("[data-accept-cookies]");
     const reject = banner.querySelector("[data-reject-cookies]");
 
+    // Ambos os botões apenas registram a preferência e escondem o aviso.
+    // Nenhum deles desativa o Pixel.
     accept?.addEventListener("click", () => setConsent(consentAccepted));
     reject?.addEventListener("click", () => setConsent(consentRejected));
   };
@@ -109,8 +63,5 @@
     getConsent,
   };
 
-  document.addEventListener("DOMContentLoaded", () => {
-    initBanner();
-    initPageTracking();
-  });
+  document.addEventListener("DOMContentLoaded", initBanner);
 })();
