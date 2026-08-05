@@ -6,8 +6,9 @@
 
   // O Pixel dispara incondicionalmente (assets/js/pixel.js). Este módulo NÃO
   // faz gate de consentimento: o rastreio fica ativo em qualquer página e a
-  // qualquer momento, por decisão de negócio. O banner de cookies permanece no
-  // markup apenas como aviso e nunca desativa o Pixel.
+  // qualquer momento, por decisão de negócio. O banner de cookies foi removido
+  // do markup; a lógica de banner abaixo é defensiva (no-op se não existir) e
+  // nunca desativa o Pixel.
 
   const getConsent = () => {
     try {
