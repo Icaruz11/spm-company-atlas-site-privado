@@ -1,7 +1,7 @@
 window.SPM_CONFIG = window.SPM_CONFIG || {
   brandName: "SPM Company",
   siteName: "SPM Company - Protocolo ATLAS",
-  siteUrl: "https://www.spmcompany.com.br",
+  siteUrl: "https://spmcompany.com.br",
   pixelId: "1899907434017840",
   appsScriptUrl:
     "https://script.google.com/macros/s/AKfycbzCWlF50rsgcHFSh6MTOfncFa450VhoMRV0K_e_CSpCQx68x0eDEPZa_hZoG9ZqSE3e/exec",
