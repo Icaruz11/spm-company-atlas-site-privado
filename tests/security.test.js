@@ -67,3 +67,22 @@ test("GitHub runs the security checks for pushes and pull requests", () => {
   assert.match(workflow, /push:/);
   assert.match(workflow, /npm test/);
 });
+
+test("every page requests the hardened stylesheet revision", () => {
+  const pages = [
+    "index.html",
+    "404.html",
+    "obrigado/index.html",
+    "obrigado1/index.html",
+    "politica-de-privacidade/index.html",
+    "termos-de-uso/index.html",
+  ];
+
+  for (const page of pages) {
+    assert.match(
+      read(page),
+      /\/assets\/css\/styles\.css\?v=atlas-security-1/,
+      `${page} must bust the immutable CSS cache`,
+    );
+  }
+});
