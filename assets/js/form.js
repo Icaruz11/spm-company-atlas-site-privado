@@ -105,82 +105,6 @@
     }
   };
 
-  const collectDraft = (form) => {
-    const draft = {};
-    form.querySelectorAll("input, select, textarea").forEach((field) => {
-      if (
-        !(
-          field instanceof HTMLInputElement ||
-          field instanceof HTMLSelectElement ||
-          field instanceof HTMLTextAreaElement
-        )
-      ) {
-        return;
-      }
-
-      if (field.name && !field.matches('[type="hidden"]')) {
-        draft[field.name] = field.type === "checkbox" ? field.checked : field.value;
-      }
-    });
-    return draft;
-  };
-
-  const collectSubmission = (form) => {
-    const submission = {};
-    form.querySelectorAll("input, select, textarea").forEach((field) => {
-      if (
-        !(
-          field instanceof HTMLInputElement ||
-          field instanceof HTMLSelectElement ||
-          field instanceof HTMLTextAreaElement
-        )
-      ) {
-        return;
-      }
-
-      if (!field.name || field.name === "website") {
-        return;
-      }
-
-      submission[field.name] = field.type === "checkbox" ? field.checked : field.value;
-    });
-    return submission;
-  };
-
-  const restoreDraft = (form) => {
-    const raw = storageGet(config.formDraftKey || "spm_form_draft");
-    if (!raw) return;
-
-    try {
-      const draft = JSON.parse(raw);
-      Object.entries(draft).forEach(([name, value]) => {
-        const field = form.elements.namedItem(name);
-        if (!field) return;
-        if (field instanceof RadioNodeList) return;
-
-        if (field instanceof HTMLInputElement && field.type === "checkbox") {
-          field.checked = Boolean(value);
-        } else {
-          field.value = value;
-        }
-      });
-    } catch {
-      // ignore invalid draft
-    }
-  };
-
-  const persistDraft = (form) => {
-    storageSet(config.formDraftKey || "spm_form_draft", JSON.stringify(collectDraft(form)));
-  };
-
-  const clearDraft = () => {
-    try {
-      localStorage.removeItem(config.formDraftKey || "spm_form_draft");
-    } catch {
-      // ignore
-    }
-  };
-
   const showStatus = (form, message, state = "info") => {
     const status = form.querySelector("[data-form-status]");
     if (!status) return;
@@ -209,24 +133,13 @@
 
   const handleSuccess = (form, mode) => {
     resetSubmitButton(form);
-    clearDraft();
 
     showStatus(
       form,
       mode === "live"
         ? "Solicitacao enviada com sucesso. Nosso time vai analisar suas informacoes e entrar em contato."
-        : "Pre-visualizacao salva localmente para revisao. Configure a URL do Apps Script para ativar o envio real.",
+        : "Pre-visualizacao concluida. Configure a URL do Apps Script para ativar o envio real.",
       "success",
-    );
-
-    const payload = collectSubmission(form);
-    storageSet(
-      config.leadKey || "spm_last_lead",
-      JSON.stringify({
-        ...payload,
-        submitted_at: new Date().toISOString(),
-        mode,
-      }),
     );
 
     const eventIdField = form.querySelector('[name="event_id"]');
@@ -304,14 +217,11 @@
     if (!form) return;
 
     saveTrackingParams();
-    restoreDraft(form);
     fillTrackingFields(form);
 
     const submitButton = form.querySelector('[type="submit"]');
     const endpoint = form.dataset.endpoint || config.appsScriptUrl || "";
     const liveEndpoint = isLiveEndpoint(endpoint);
-
-    form.addEventListener("input", () => persistDraft(form));
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();

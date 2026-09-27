@@ -14,7 +14,7 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=()"
+          "value": "camera=(), display-capture=(), geolocation=(), microphone=(), payment=(), publickey-credentials-get=(), usb=(), fullscreen=(self \"https://www.youtube-nocookie.com\"), picture-in-picture=(self \"https://www.youtube-nocookie.com\")"
         },
         {
           "key": "X-Frame-Options",
@@ -25,8 +25,20 @@
           "value": "max-age=31536000; includeSubDomains; preload"
         },
         {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin-allow-popups"
+        },
+        {
+          "key": "Cross-Origin-Resource-Policy",
+          "value": "same-site"
+        },
+        {
+          "key": "X-Permitted-Cross-Domain-Policies",
+          "value": "none"
+        },
+        {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://www.facebook.com; script-src 'self' https://connect.facebook.net; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://connect.facebook.net https://www.facebook.com https://graph.facebook.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; form-action 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; upgrade-insecure-requests"
+          "value": "default-src 'none'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' https://connect.facebook.net; style-src 'self'; img-src 'self' data: https://www.facebook.com; font-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://connect.facebook.net https://www.facebook.com; frame-src https://www.youtube-nocookie.com; media-src 'self'; manifest-src 'self'; form-action 'self'; worker-src 'none'; upgrade-insecure-requests"
         }
       ]
     },
