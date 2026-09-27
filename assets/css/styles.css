@@ -493,6 +493,14 @@ body.nav-open .site-header {
   animation: atlasOrbit 18s linear infinite;
 }
 
+.atlas-orbit--clockwise {
+  --rotate: 24deg;
+}
+
+.atlas-orbit--counterclockwise {
+  --rotate: -42deg;
+}
+
 .atlas-orbit:nth-child(2) {
   inset: 25%;
   border-color: rgba(157, 157, 156, 0.13);
@@ -1815,6 +1823,30 @@ body.nav-open .site-header {
   border: 0;
 }
 
+.tracking-pixel {
+  display: none;
+}
+
+.copy-max-58 {
+  max-width: 58ch;
+}
+
+.copy-max-62 {
+  max-width: 62ch;
+}
+
+.space-top-26 {
+  margin-top: 26px;
+}
+
+.space-top-28 {
+  margin-top: 28px;
+}
+
+.space-top-32 {
+  margin-top: 32px;
+}
+
 @keyframes heroMapDrift {
   0% {
     transform: scale(1.012) translate3d(0, 0, 0);
@@ -3084,4 +3116,3 @@ table {
 #lovable-badge {
   display: none !important;
 }
-

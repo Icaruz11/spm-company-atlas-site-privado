@@ -8,6 +8,4 @@ window.SPM_CONFIG = window.SPM_CONFIG || {
   whatsappUrl: "https://wa.me/message/4LI3UVCOBMLRK1",
   instagramUrl: "https://www.instagram.com/spmcompany_/",
   cookieKey: "spm_cookie_consent",
-  leadKey: "spm_last_lead",
-  formDraftKey: "spm_form_draft",
 };

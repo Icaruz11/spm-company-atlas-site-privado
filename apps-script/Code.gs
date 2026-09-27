@@ -4,8 +4,53 @@ const SHEET_NAME = 'Leads';
 const META_PIXEL_ID = '1899907434017840';
 const META_API_VERSION = 'v20.0';
 
-const META_ACCESS_TOKEN = 'COLE_SEU_ACCESS_TOKEN_AQUI';
-const META_TEST_EVENT_CODE = '';
+const FIELD_LIMITS = {
+  nome: 100,
+  email: 254,
+  whatsapp: 20,
+  empresa: 120,
+  segmento: 64,
+  cidade_estado: 120,
+  faturamento: 64,
+  desafio: 500,
+  trafego_pago: 32,
+  como_conheceu: 120,
+  observacao: 1000,
+  consentimento: 16,
+  utm_source: 120,
+  utm_medium: 120,
+  utm_campaign: 200,
+  utm_content: 200,
+  utm_term: 200,
+  fbclid: 512,
+  gclid: 512,
+  page_url: 2048,
+  referrer: 2048,
+  user_agent: 512,
+  event_id: 128,
+  fbp: 256,
+  fbc: 512,
+};
+
+const ALLOWED_SEGMENTS = [
+  'Medicina',
+  'Odontologia',
+  'Estética',
+  'Nutrição',
+  'Fisioterapia',
+  'Psicologia',
+  'Clínica multidisciplinar',
+  'Outro segmento da saúde',
+];
+
+const ALLOWED_REVENUE = [
+  'Até R$ 30 mil',
+  'R$ 30 mil a R$ 40 mil',
+  'R$ 40 mil a R$ 80 mil',
+  'R$ 80 mil a R$ 150 mil',
+  'R$ 150 mil a R$ 300 mil',
+  'Mais de R$ 300 mil',
+];
 
 const HEADERS = [
   'ID',
@@ -65,17 +110,76 @@ function doGet() {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+function jsonResponse_(payload) {
+  return ContentService
+    .createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function normalizeText_(value, maxLength) {
+  return String(value || '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+    .trim()
+    .slice(0, maxLength);
+}
+
+function validateLead_(raw) {
+  const data = {};
+  Object.keys(FIELD_LIMITS).forEach(function (field) {
+    data[field] = normalizeText_(raw[field], FIELD_LIMITS[field]);
+  });
+
+  if (data.nome.length < 2) {
+    throw new Error('INVALID_NAME');
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+    throw new Error('INVALID_EMAIL');
+  }
+
+  const phoneDigits = data.whatsapp.replace(/\D/g, '');
+  if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+    throw new Error('INVALID_PHONE');
+  }
+  if (data.segmento && ALLOWED_SEGMENTS.indexOf(data.segmento) === -1) {
+    throw new Error('INVALID_SEGMENT');
+  }
+  if (data.faturamento && ALLOWED_REVENUE.indexOf(data.faturamento) === -1) {
+    throw new Error('INVALID_REVENUE');
+  }
+
+  return data;
+}
+
+function sanitizeSheetCell_(value) {
+  const text = String(value || '');
+  return /^\s*[=+\-@]/.test(text) ? "'" + text : text;
+}
+
+function enforceRateLimit_(data) {
+  const fingerprint = sha256_(data.email + '|' + normalizePhone_(data.whatsapp)).slice(0, 40);
+  const key = 'lead-' + fingerprint;
+  const cache = CacheService.getScriptCache();
+  if (cache.get(key)) {
+    throw new Error('RATE_LIMITED');
+  }
+  cache.put(key, '1', 60);
+}
+
 function doPost(e) {
   const lock = LockService.getScriptLock();
-  lock.tryLock(10000);
+  const hasLock = lock.tryLock(10000);
 
   try {
-    const data = e && e.parameter ? e.parameter : {};
-    if (data.website) {
-      return ContentService
-        .createTextOutput(JSON.stringify({ status: 'spam' }))
-        .setMimeType(ContentService.MimeType.JSON);
+    const raw = e && e.parameter ? e.parameter : {};
+    if (raw.website) {
+      return jsonResponse_({ status: 'spam' });
     }
+    if (!hasLock) {
+      throw new Error('LOCK_TIMEOUT');
+    }
+
+    const data = validateLead_(raw);
+    enforceRateLimit_(data);
 
     const sheet = getSheet_();
 
@@ -117,7 +221,9 @@ function doPost(e) {
       '',
     ];
 
-    sheet.appendRow(row);
+    sheet.appendRow(row.map(function (value) {
+      return value instanceof Date ? value : sanitizeSheetCell_(value);
+    }));
 
     try {
       sendMetaCAPI_(data, eventId, now);
@@ -125,15 +231,17 @@ function doPost(e) {
       console.error('CAPI error:', capiError && capiError.message);
     }
 
-    return ContentService
-      .createTextOutput(JSON.stringify({ status: 'success', leadId, eventId }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return jsonResponse_({ status: 'success', leadId, eventId });
   } catch (error) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ status: 'error', message: error.message }))
-      .setMimeType(ContentService.MimeType.JSON);
+    console.error('Lead processing error:', error && error.message);
+    return jsonResponse_({
+      status: 'error',
+      message: 'Não foi possível processar a solicitação.',
+    });
   } finally {
-    lock.releaseLock();
+    if (hasLock) {
+      lock.releaseLock();
+    }
   }
 }
 
@@ -164,12 +272,12 @@ function splitCityState_(raw) {
 }
 
 function sendMetaCAPI_(data, eventId, when) {
-  const accessToken = META_ACCESS_TOKEN;
-  if (!accessToken || accessToken.indexOf('COLE_SEU') === 0) {
+  const accessToken = PropertiesService.getScriptProperties().getProperty('META_ACCESS_TOKEN');
+  if (!accessToken) {
     console.warn('META_ACCESS_TOKEN not set; skipping CAPI');
     return;
   }
-  const testEventCode = META_TEST_EVENT_CODE || '';
+  const testEventCode = PropertiesService.getScriptProperties().getProperty('META_TEST_EVENT_CODE') || '';
 
   const nameParts = String(data.nome || '').trim().split(/\s+/);
   const firstName = nameParts.shift() || '';
